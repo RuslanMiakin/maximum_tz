@@ -35,7 +35,7 @@ HTTP (FastAPI) → LangGraph → tools → LLM (extract + synthesize)
 
 Подробная спецификация: [docs/project-spec.md](docs/project-spec.md)
 
-## Связь с multi-agent (personal director, венчурный фонд)
+## Связь с multi-agent (венчурный фонд)
 
 В тестовом задании — один сценарий «company research». В продукте фонда это **один capability-срез** более широкой системы: оркестратор + ролевые агенты + общее состояние + политики на tools.
 
@@ -48,7 +48,7 @@ HTTP (FastAPI) → LangGraph → tools → LLM (extract + synthesize)
 | `synthesize_report` (LLM + schema) | Analyst agent: вывод только из payload, structured output |
 | `insufficient_data` + HTTP 422 | Governance: не галлюцинировать при слабых данных, эскалация / отказ |
 
-**Эволюция под personal director (устно / roadmap, не в scope теста):**
+**Эволюция под венчурный фонгд (устно / roadmap, не в scope теста):**
 
 ```
 Сейчас:     запрос → extract → collect (profile + news) → synthesize | insufficient
@@ -178,5 +178,3 @@ RSS бесплатен и без квоты — основной канал. Tav
 ## Итог
 
 **Тестовое задание:** FastAPI + LangGraph + реальные tools, фиксированный сбор данных по ТЗ, edge cases, логи, `evaluate.py` / CI.
-
-**Для собеседования (personal director / VC):** репозиторий показывает оркестрацию, tool governance, observability и отказ от галлюцинаций при слабых данных; multi-agent фонда — расширение того же графа ролевыми узлами и router, а не обязательная переделка MVP в ReAct.
