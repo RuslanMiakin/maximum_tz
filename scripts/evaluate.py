@@ -33,7 +33,7 @@ TEST_QUERIES: list[tuple[str, str]] = [
     ("public_nvidia", "Составь аналитический отчет по компании Nvidia"),
     ("short_query", "Отчет по Amazon"),
     ("cyrillic_brand", "Аналитический отчет по компании Сбербанк"),
-    ("edge_gibberish", "Составь отчет по компании XyZqWeRt123"),
+    ("edge_gibberish", "Составь отчет по компании Альфа-Банк"),
 ]
 
 WIDTH = 52

@@ -9,6 +9,10 @@ from app.config import get_settings
 from app.http_headers import get_http_headers
 from app.tools.sanitize import sanitize_profile_text
 
+
+def _has_cyrillic(text: str) -> bool:
+    return any("\u0400" <= c <= "\u04FF" for c in text)
+
 logger = structlog.get_logger(__name__)
 
 PROFILE_NOT_FOUND_MARKER = "[PROFILE_UNAVAILABLE]"
@@ -100,10 +104,12 @@ def _fetch_yfinance_profile(company_name: str) -> tuple[str | None, str | None]:
 
 
 async def _fetch_wikipedia(company_name: str) -> str | None:
-    url = (
-        "https://en.wikipedia.org/api/rest_v1/page/summary/"
-        f"{quote(company_name.replace(' ', '_'))}"
-    )
+    use_ru = _has_cyrillic(company_name)
+    lang = "ru" if use_ru else "en"
+    page = quote(company_name.strip().replace(" ", "_"))
+    url = f"https://{lang}.wikipedia.org/api/rest_v1/page/summary/{page}"
+    logger.info("wikipedia_request", company_name=company_name, lang=lang, url=url)
+
     settings = get_settings()
     headers = get_http_headers()
     try:
@@ -114,14 +120,14 @@ async def _fetch_wikipedia(company_name: str) -> str | None:
             resp.raise_for_status()
             data = resp.json()
     except Exception as e:
-        logger.warning("wikipedia_failed", company=company_name, error=str(e))
+        logger.warning("wikipedia_failed", company=company_name, lang=lang, error=str(e))
         return None
 
     extract = data.get("extract")
     if not extract:
         return None
     title = data.get("title", company_name)
-    wiki = f"Компания: {title}\nИсточник: Wikipedia\n\n{extract}"
+    wiki = f"Компания: {title}\nИсточник: Wikipedia ({lang})\n\n{extract}"
     return sanitize_profile_text(wiki)
 
 
