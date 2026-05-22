@@ -3,6 +3,7 @@ import structlog
 from app.config import get_settings
 from app.tools.news.rss import fetch_google_news_rss
 from app.tools.news.tavily import fetch_tavily_news
+from app.tools.sanitize import sanitize_news_item
 
 logger = structlog.get_logger(__name__)
 
@@ -18,7 +19,7 @@ async def get_financial_news(company_name: str) -> tuple[list[str], list[str]]:
     settings = get_settings()
     sources: list[str] = []
 
-    items = await fetch_google_news_rss(company_name)
+    items = _sanitize_news_list(await fetch_google_news_rss(company_name))
     if items:
         sources.append("google_news_rss")
 
@@ -27,7 +28,7 @@ async def get_financial_news(company_name: str) -> tuple[list[str], list[str]]:
         return items[:5], sources
 
     reason = "empty_rss" if not items else "insufficient_results"
-    tavily_items = await fetch_tavily_news(company_name, reason=reason)
+    tavily_items = _sanitize_news_list(await fetch_tavily_news(company_name, reason=reason))
     if tavily_items:
         if "google_news_rss" not in sources and items:
             sources.append("google_news_rss")
@@ -42,3 +43,7 @@ async def get_financial_news(company_name: str) -> tuple[list[str], list[str]]:
 
     logger.info("get_financial_news_not_found", company_name=company_name)
     return [NO_NEWS_MSG], sources
+
+
+def _sanitize_news_list(items: list[str]) -> list[str]:
+    return [sanitize_news_item(item) for item in items]

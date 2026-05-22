@@ -2,6 +2,7 @@ import asyncio
 
 import structlog
 
+from app.data_trace import log_tool_data_trace
 from app.graph.state import ReportState
 from app.tools.company import get_company_profile, is_profile_not_found
 from app.tools.news import get_financial_news
@@ -46,6 +47,13 @@ async def collect_data(state: ReportState) -> dict:
         sources=sources,
     )
     logger.info("Получил ответ от tools", company_name=company_name)
+
+    log_tool_data_trace(
+        stage="after_tools",
+        company_name=company_name,
+        profile=profile,
+        news=news,
+    )
 
     out: dict = {
         "profile": profile,

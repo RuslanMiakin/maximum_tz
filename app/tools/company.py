@@ -7,6 +7,7 @@ import yfinance as yf
 
 from app.config import get_settings
 from app.http_headers import get_http_headers
+from app.tools.sanitize import sanitize_profile_text
 
 logger = structlog.get_logger(__name__)
 
@@ -91,12 +92,11 @@ def _fetch_yfinance_profile(company_name: str) -> tuple[str | None, str | None]:
         f"Отрасль: {info.get('industry', 'н/д')}",
         f"Страна: {info.get('country', 'н/д')}",
         f"Сотрудники: {info.get('fullTimeEmployees', 'н/д')}",
-        f"Рыночная капитализация: {info.get('marketCap', 'н/д')}",
         f"Сайт: {info.get('website', 'н/д')}",
         "",
         summary,
     ]
-    return "\n".join(parts), info.get("symbol") or ticker_symbol
+    return sanitize_profile_text("\n".join(parts)), info.get("symbol") or ticker_symbol
 
 
 async def _fetch_wikipedia(company_name: str) -> str | None:
@@ -121,7 +121,8 @@ async def _fetch_wikipedia(company_name: str) -> str | None:
     if not extract:
         return None
     title = data.get("title", company_name)
-    return f"Компания: {title}\nИсточник: Wikipedia\n\n{extract}"
+    wiki = f"Компания: {title}\nИсточник: Wikipedia\n\n{extract}"
+    return sanitize_profile_text(wiki)
 
 
 async def get_company_profile(company_name: str) -> tuple[str, str | None, str]:

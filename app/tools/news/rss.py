@@ -4,6 +4,8 @@ from urllib.parse import quote_plus
 import feedparser
 import structlog
 
+from app.tools.sanitize import sanitize_news_item
+
 logger = structlog.get_logger(__name__)
 
 
@@ -24,6 +26,8 @@ def _parse_rss(company_name: str) -> list[str]:
         link = entry.get("link", "")
         if not title:
             continue
+        title = sanitize_news_item(title)
+        summary = sanitize_news_item(summary) if summary else ""
         block = f"**{title}**"
         if published:
             block += f" ({published})"

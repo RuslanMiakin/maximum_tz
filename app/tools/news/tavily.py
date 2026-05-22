@@ -3,6 +3,7 @@ import asyncio
 import structlog
 
 from app.config import get_settings
+from app.tools.sanitize import sanitize_news_item
 
 logger = structlog.get_logger(__name__)
 
@@ -28,6 +29,8 @@ def _search_tavily(company_name: str) -> list[str]:
         url = r.get("url", "")
         if not title:
             continue
+        title = sanitize_news_item(title)
+        content = sanitize_news_item(content) if content else ""
         block = f"**{title}**"
         if content:
             block += f"\n{content}"

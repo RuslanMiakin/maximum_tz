@@ -1,5 +1,6 @@
 import structlog
 
+from app.data_trace import log_report_numeric_trace, log_tool_data_trace
 from app.graph.state import ReportState
 from app.llm import get_chat_model
 from app.prompts.synthesize import SYNTHESIZE_SYSTEM_PROMPT
@@ -50,6 +51,15 @@ async def synthesize_report(state: ReportState) -> dict:
     logger.info("node=synthesize_report", step="start", company_name=company_name)
     logger.info("Формирую отчет...", company_name=company_name)
 
+    profile = state.get("profile") or ""
+    news = state.get("news") or []
+    log_tool_data_trace(
+        stage="before_llm",
+        company_name=company_name,
+        profile=profile,
+        news=news,
+    )
+
     llm = get_chat_model().with_structured_output(CompanyReport)
     report: CompanyReport = await llm.ainvoke(
         [
@@ -59,6 +69,17 @@ async def synthesize_report(state: ReportState) -> dict:
     )
 
     markdown = report.to_markdown()
+    log_report_numeric_trace(
+        stage="after_llm",
+        company_name=company_name,
+        markdown=markdown,
+    )
+    log_tool_data_trace(
+        stage="compare_tool_vs_report",
+        company_name=company_name,
+        profile=profile,
+        news=news,
+    )
     logger.info("node=synthesize_report", step="done", company_name=company_name)
 
     return {
