@@ -1,6 +1,6 @@
 # Market Researcher
 
-MVP AI-исследователя компаний (тестовое задание): сбор данных из внешних API и структурированный отчёт в Markdown. Тот же каркас (LangGraph + tools + наблюдаемость) — зачаток оркестрации для **personal director / multi-agent** сценариев венчурного фонда; ниже — как это стыкуется с продуктом, не только с ТЗ.
+MVP AI-исследователя компаний (тестовое задание): сбор данных из внешних API и структурированный отчёт в Markdown. LangGraph + tools + логи — база для расширения в multi-agent (personal director); кратко в разделе ниже.
 
 ## Что делает
 
@@ -33,40 +33,23 @@ HTTP (FastAPI) → LangGraph → tools → LLM (extract + synthesize)
 
 Препроцессинг: `app/tools/sanitize.py` — удаление ценовых уровней из профиля и новостей.
 
-Подробная спецификация: [docs/project-spec.md](docs/project-spec.md)
+## Связь с multi-agent
 
-## Связь с multi-agent (венчурный фонд)
+Сейчас — срез **company research** по ТЗ. LangGraph — orchestration layer: новые узлы = новые роли, общий state, политики на tools.
 
-В тестовом задании — один сценарий «company research». В продукте фонда это **один capability-срез** более широкой системы: оркестратор + ролевые агенты + общее состояние + политики на tools.
+| Узел | Роль |
+|------|------|
+| `extract_company` | Intent, сущность |
+| `collect_data` | Внешние источники, `sources_used` |
+| `synthesize_report` | Аналитик, только из tool data |
+| `insufficient_data` | Нет данных → 422, без галлюцинаций |
 
-**Что уже заложено в этом репозитории (паттерны под прод):**
-
-| Слой в MVP | Роль в multi-agent фонда |
-|------------|-------------------------|
-| `extract_company` (LLM) | Router / intent: кого анализируем, бренд vs эмитент, неоднозначность |
-| `collect_data` (детерминированные tools) | Data agents: обязательные внешние источники с audit (`sources_used`) |
-| `synthesize_report` (LLM + schema) | Analyst agent: вывод только из payload, structured output |
-| `insufficient_data` + HTTP 422 | Governance: не галлюцинировать при слабых данных, эскалация / отказ |
-
-**Эволюция под венчурный фонгд (устно / roadmap, не в scope теста):**
-
-```
-Сейчас:     запрос → extract → collect (profile + news) → synthesize | insufficient
-
-Фонд v1:    router → [ResearchAgent | PortfolioAgent | MeetingPrepAgent | …]
-            → shared state / memory → synthesis → HITL при низкой уверенности
-
-Фонд v2:    права на tools по роли, кэш, event-driven задачи, полный trace в observability
-```
-
-- **Фиксированный граф на compliance-шагах** (сбор фактов, due diligence) — предсказуемость, аудит, правильные аргументы в API.
-- **ReAct / LLM-tool-loop** — для exploratory задач (широкий поиск, уточняющие вопросы), не вместо обязательного пайплайна сбора данных.
-- Текущий `collect_data` — не «отказ от multi-agent», а **policy layer**: для сценария «профиль + новости по сущности» оба tool вызываются всегда, как в ТЗ; router в v1 фонда решает, *какой* сценарий запустить.
+Детерминированный `collect_data` — по ТЗ всегда оба tool с `company_name` (не весь промпт). ReAct — для задач с нефиксированным планом; обязательный сбор фактов — фиксированный граф.
 
 ## Стек
 
 - Python 3.11, FastAPI, uvicorn
-- LangGraph
+- LangGraph, langchain-openai (или langchain-anthropic)
 - yfinance, httpx, feedparser, tavily-python
 - pydantic-settings, structlog
 
@@ -141,28 +124,36 @@ docker run --rm -p 8000:8000 --env-file .env market-researcher
 
 ## Почему выбран такой подход
 
-Обоснование под **ТЗ** и под **роль архитектора agentic-системы в фонде** (надёжность важнее «чистого ReAct» в демо).
+Краткое обоснование под тестовое задание (Tool Use, реальные API, edge cases).
 
 **FastAPI + HTTP API**  
-Явный контракт: валидация, OpenAPI, `422` при нехватке данных. Для фонда тот же слой — gateway к оркестратору (сейчас один endpoint `reports`, дальше — роутинг по intent).
+Явный контракт: валидация, OpenAPI, `422` при нехватке данных. Проще демонстрировать и тестировать, чем только CLI.
 
-**LangGraph как orchestration layer**  
-Граф = явные стадии, ветвления и общий state — база для multi-agent: новые узлы = новые роли (research, portfolio, calendar), без смены runtime. CrewAI/несколько чат-агентов на **два** data-tool в тесте дали бы лишнюю latency и шум в логах без выигрыша по ТЗ.
+**LangGraph**  
+Явные стадии (извлечь → собрать → отчёт), ветка `insufficient_data`, общий state — основа для добавления ролевых узлов без смены runtime.
 
-**Deterministic `collect_data` (не ReAct на сборе данных)**  
-ТЗ: после извлечения сущности всегда `get_company_profile` и `get_financial_news`, аргумент — `company_name` (`Apple`), не весь промпт. В проде фонда тот же принцип на обязательных шагах (факты, compliance). ReAct уместен там, где план **не** фиксирован; здесь — осознанный, повторяемый pipeline + trace в консоли (`Думаю…` → вызовы tools → `Получил ответ…` → `Формирую отчет…`).
+**Deterministic `collect_data` (без ReAct на сборе)**  
+ТЗ: осознанный вызов tools и аргумент `company_name` (`Apple`), не весь промпт. Фиксированный вызов обоих tools предсказуемее, чем если LLM сам решает, вызывать ли API. Логи: `Думаю…` → вызовы tools → `Получил ответ…` → `Формирую отчет…`.
 
 **RSS → Tavily для новостей**  
-RSS бесплатен и без квоты — основной канал. Tavily только при пустой/скудной выдаче: экономия лимита и соответствие ТЗ (реальный API + fallback).
+RSS без квоты — основной канал. Tavily при пустой/скудной выдаче (реальный API + fallback по ТЗ).
 
 **yfinance → Wikipedia для профиля**  
-Публичные компании закрываются тикером и структурными полями. Wikipedia — fallback без ключа; для кириллицы в запросе используется `ru.wikipedia.org`, для латиницы — `en.wikipedia.org` (без транслитерации имён).
+Тикер и структурные поля; Wikipedia без ключа (`ru` / `en` по языку имени).
 
-**Препроцессинг цен в tools (sanitize, v1)**  
-Заголовки RSS часто содержат уровни цен (`$300`), модель переносила их в отчёт. В v1 цены режутся в tools, в отчёте — качественная динамика; в промпте запрет чисел вне tool data.
+**Препроцессинг цен (sanitize, v1)**  
+Цены режутся в tools; в отчёте — качественная динамика, без чисел вне tool data.
 
 **Промпт и structured output**  
-Отчёт через Pydantic → Markdown: стабильные секции по ТЗ. Отдельные правила: не менять имя сущности, не подменять бренд на известный, не использовать общие знания LLM вне payload, фильтр нерелевантных новостей.
+Pydantic → Markdown по секциям ТЗ; не менять имя сущности, не подменять бренд, не опираться на общие знания LLM вне payload.
 
-**Что сознательно не делал в этом репозитории**  
-Отдельные чат-агенты CrewAI, router на 5+ intents, shared memory, HITL UI, ACL на tools — следующий этап продукта фонда; в тесте — один вертикальный срез (company research) на том же LangGraph.
+**Что не в scope теста**  
+CrewAI, router на множество intents, shared memory, HITL, ACL на tools — следующий этап; здесь один вертикальный срез на LangGraph.
+
+## Ограничения
+
+- Wikipedia: страница может отсутствовать при неточном имени
+- RSS/Tavily: нерелевантные заголовки при неоднозначных именах
+- Качество отчёта зависит от LLM и внешних источников
+- Нет авторизации, БД, кэша
+- v1: без числовых цен и капитализации в выходе tools
