@@ -95,8 +95,10 @@ async def run_case(name: str, query: str, graph) -> bool:
     print(f"MARKDOWN LENGTH: {len(markdown)} chars")
     print(f"RESULT: {label} — markdown {'present' if ok else 'missing'}")
     if ok:
-        preview = markdown.strip().replace("\n", " ")[:300]
-        print(f"PREVIEW: {preview}...")
+        print()
+        print("--- REPORT (full) ---")
+        print(markdown.strip())
+        print("--- end report ---")
 
     return ok
 

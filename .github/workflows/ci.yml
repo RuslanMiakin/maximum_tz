@@ -61,7 +61,7 @@ jobs:
           echo "OPENAI_API_KEY=$OPENAI_API_KEY" > .env
           echo "OPENAI_MODEL=gpt-4o-mini" >> .env
           echo "TAVILY_API_KEY=$TAVILY_API_KEY" >> .env
-          echo "HTTP_USER_AGENT=MarketResearcherBot/1.0 (contact: github-actions)" >> .env
+          echo "HTTP_USER_AGENT=MarketResearcherBot/1.0 (contact: aliniym@yahoo.com)" >> .env
           echo "LOG_LEVEL=INFO" >> .env
 
       - name: Run evaluation
@@ -70,6 +70,6 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_MODEL: gpt-4o-mini
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
-          HTTP_USER_AGENT: "MarketResearcherBot/1.0 (contact: github-actions)"
+          HTTP_USER_AGENT: "MarketResearcherBot/1.0 (contact: aliniym@yahoo.com)"
           LOG_LEVEL: INFO
         run: python scripts/evaluate.py
