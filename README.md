@@ -94,9 +94,22 @@ python scripts/evaluate.py
 Workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) на `push` / `pull_request`:
 
 - **smoke** — установка зависимостей, сборка графа, `docker build`
-- **e2e** — `python scripts/evaluate.py` (только если в Secrets репозитория задан `OPENAI_API_KEY`)
+- **e2e** — `python scripts/evaluate.py` (только если в Secrets задан `OPENAI_API_KEY`)
 
-Опционально: `TAVILY_API_KEY` для fallback новостей в CI.
+**Важно:** файл `.env` в git не попадает (см. `.gitignore`). На GitHub переменные задаются через **Secrets**, не через коммит `.env`:
+
+| Secret | Обязателен | Назначение |
+|--------|------------|------------|
+| `OPENAI_API_KEY` | да (для e2e) | LLM |
+| `TAVILY_API_KEY` | нет | fallback новостей |
+
+В job **e2e** workflow создаёт `.env` на раннере из Secrets и дублирует переменные в `env:` — так же читает `pydantic-settings` и `load_dotenv` в `evaluate.py`.
+
+**Docker:** `.env` в образ не копируется. Передача при запуске:
+
+```bash
+docker run --rm -p 8000:8000 --env-file .env market-researcher
+```
 
 ## Ключевые инженерные решения
 
