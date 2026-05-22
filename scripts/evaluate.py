@@ -36,6 +36,34 @@ TEST_QUERIES: list[tuple[str, str]] = [
     ("edge_gibberish", "Составь отчет по компании XyZqWeRt123"),
 ]
 
+WIDTH = 52
+
+
+def _print_final_summary(
+    results: list[tuple[str, bool]], passed: int, total: int
+) -> None:
+    failed = [name for name, ok in results if not ok]
+    all_ok = passed == total
+
+    print()
+    print("+" + "-" * WIDTH + "+")
+    title = f"  FINAL RESULT: {passed}/{total}"
+    print("|" + title.center(WIDTH) + "|")
+    print("|" + f"  {'ALL PASSED' if all_ok else 'SOME FAILED'}".center(WIDTH) + "|")
+    print("+" + "-" * WIDTH + "+")
+
+    print()
+    print("  Case results:")
+    for name, ok in results:
+        mark = "OK  " if ok else "FAIL"
+        print(f"    [{mark}] {name}")
+
+    if failed:
+        print()
+        print(f"  Failed ({len(failed)}): {', '.join(failed)}")
+
+    print()
+
 
 async def run_case(name: str, query: str, graph) -> bool:
     print(f"\n{'=' * 60}")
@@ -81,19 +109,23 @@ async def main() -> int:
         print("ERROR: Set OPENAI_API_KEY or ANTHROPIC_API_KEY in .env")
         return 1
 
+    total = len(TEST_QUERIES)
     print("Market Researcher — E2E evaluation (direct graph invoke)")
     print(f"LLM provider: {settings.llm_provider}")
-    print(f"Cases: {len(TEST_QUERIES)}")
+    print(f"Cases: {total}")
 
     graph = get_report_graph()
+    results: list[tuple[str, bool]] = []
     passed = 0
+
     for name, query in TEST_QUERIES:
-        if await run_case(name, query, graph):
+        ok = await run_case(name, query, graph)
+        results.append((name, ok))
+        if ok:
             passed += 1
 
-    print(f"\n{'=' * 60}")
-    print(f"SUMMARY: {passed}/{len(TEST_QUERIES)} passed (markdown present)")
-    return 0 if passed == len(TEST_QUERIES) else 1
+    _print_final_summary(results, passed, total)
+    return 0 if passed == total else 1
 
 
 if __name__ == "__main__":

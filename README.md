@@ -89,6 +89,15 @@ python scripts/evaluate.py
 
 Требуется настроенный LLM API key в `.env`.
 
+## GitHub Actions
+
+Workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) на `push` / `pull_request`:
+
+- **smoke** — установка зависимостей, сборка графа, `docker build`
+- **e2e** — `python scripts/evaluate.py` (только если в Secrets репозитория задан `OPENAI_API_KEY`)
+
+Опционально: `TAVILY_API_KEY` для fallback новостей в CI.
+
 ## Ключевые инженерные решения
 
 **LangGraph вместо multi-agent (CrewAI и т.п.)**  
