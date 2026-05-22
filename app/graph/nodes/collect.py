@@ -16,10 +16,8 @@ async def collect_data(state: ReportState) -> dict:
         return {"profile": "", "news": [], "sources_used": [], "profile_found": False}
 
     logger.info("node=collect_data", step="start", company_name=company_name)
-    logger.info(
-        "Думаю... Вызываю get_company_profile и get_financial_news",
-        company_name=company_name,
-    )
+    logger.info(f"Вызываю get_company_profile для {company_name}...")
+    logger.info(f"Вызываю get_financial_news для {company_name}...")
 
     profile_task = get_company_profile(company_name)
     news_task = get_financial_news(company_name)
@@ -46,7 +44,7 @@ async def collect_data(state: ReportState) -> dict:
         news_count=len(news),
         sources=sources,
     )
-    logger.info("Получил ответ от tools", company_name=company_name)
+    logger.info("Получил ответ...")
 
     log_tool_data_trace(
         stage="after_tools",

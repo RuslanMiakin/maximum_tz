@@ -49,7 +49,7 @@ async def synthesize_report(state: ReportState) -> dict:
     company_name = state.get("company_name") or "Unknown"
 
     logger.info("node=synthesize_report", step="start", company_name=company_name)
-    logger.info("Формирую отчет...", company_name=company_name)
+    logger.info("Формирую отчет...")
 
     profile = state.get("profile") or ""
     news = state.get("news") or []

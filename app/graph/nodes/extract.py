@@ -62,6 +62,7 @@ def _heuristic_extract(query: str) -> ExtractedCompany | None:
 async def extract_company(state: ReportState) -> dict:
     query = state["query"]
     logger.info("node=extract_company", step="start", query=query)
+    logger.info("Думаю...")
 
     extracted: ExtractedCompany | None = None
     try:
