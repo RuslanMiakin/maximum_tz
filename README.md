@@ -66,7 +66,7 @@ HTTP (FastAPI) → LangGraph → tools → LLM (extract + synthesize)
 ## Стек
 
 - Python 3.11, FastAPI, uvicorn
-- LangGraph, langchain-openai (или langchain-anthropic)
+- LangGraph
 - yfinance, httpx, feedparser, tavily-python
 - pydantic-settings, structlog
 
@@ -166,15 +166,3 @@ RSS бесплатен и без квоты — основной канал. Tav
 
 **Что сознательно не делал в этом репозитории**  
 Отдельные чат-агенты CrewAI, router на 5+ intents, shared memory, HITL UI, ACL на tools — следующий этап продукта фонда; в тесте — один вертикальный срез (company research) на том же LangGraph.
-
-## Ограничения
-
-- Wikipedia fallback: `ru` для кириллицы, `en` для латиницы; страница может отсутствовать при неточном имени
-- RSS/Tavily могут возвращать нерелевантные заголовки при неоднозначных именах
-- Качество отчёта зависит от LLM и полноты внешних источников
-- Нет авторизации, БД, истории запросов, кэша
-- v1: без числовых цен и капитализации в выходных данных tools
-
-## Итог
-
-**Тестовое задание:** FastAPI + LangGraph + реальные tools, фиксированный сбор данных по ТЗ, edge cases, логи, `evaluate.py` / CI.
